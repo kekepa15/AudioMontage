@@ -1,7 +1,6 @@
 import math, os
 from PIL import Image
 from glob import glob
-from tfrecordreadwrite import convert_to, read_and_decode
 from os import walk, mkdir
 
 import tensorflow as tf

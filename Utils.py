@@ -37,7 +37,7 @@ flags.DEFINE_float('lr', 0.0001, 'Initial learning rate.')
 flags.DEFINE_float('B1', 0.5, 'Beta1')
 flags.DEFINE_float('B2', 0.99, 'Beta2')
 flags.DEFINE_integer('epochs', 100000, 'Maximum epochs to iterate.')
-flags.DEFINE_integer('bn', 16, "Batch number")
+flags.DEFINE_integer('bn', 1, "Batch number")
 
 
 #data parameters
@@ -53,7 +53,7 @@ flags.DEFINE_integer('img_c', image_c, "Channel of image" )
 flags.DEFINE_integer('hidden_n', 64, "Hidden convolution number")
 flags.DEFINE_integer('output_channel', 3, "Output channel number")
 flags.DEFINE_float("gamma", 0.8, "Gamma : Diversity ratio")
-flags.DEFINE_float("lambda", 0.001, "Lambda : Learning rate of k_t")
+flags.DEFINE_float("lamb", 0.001, "Lambda : Learning rate of k_t")
 flags.DEFINE_float("iteration", 10000000, "Maximum iteration number")
 
 #---------------------------------------------------------------------------#
