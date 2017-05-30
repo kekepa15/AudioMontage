@@ -19,6 +19,8 @@ class Encoder(object):
 			
 			self.image = image # Get image
 
+			print("image_info : ", self.image)
+
 			self.outdim_info = self.info['outdim']
 			self.kernel_info = self.info['kernel']
 			self.stride_info = self.info['stride']
@@ -32,7 +34,10 @@ class Encoder(object):
 											reuse = self.reuse,\
 											)  
 
-			conv_layer_1 = tf.layers.conv2d(conv_layer_1, \
+
+			print("conv_layer_0 info : ", conv_layer_0)
+
+			conv_layer_1 = tf.layers.conv2d(conv_layer_0, \
 											self.outdim_info[1], \
 											self.kernel_info[1], \
 											self.stride_info[1], \
@@ -40,6 +45,8 @@ class Encoder(object):
 											activation = tf.nn.elu,\
 											reuse = self.reuse,\
 											)  
+
+			print("conv_layer_1 info : ", conv_layer_1)
 
 			conv_layer_2 = tf.layers.conv2d(conv_layer_1, \
 											self.outdim_info[2], \
@@ -50,7 +57,7 @@ class Encoder(object):
 											reuse = self.reuse,\
 											)  
 
-
+			print("conv_layer_2 info : ", conv_layer_2)
 
 			subsample_layer_1 = tf.layers.conv2d(conv_layer_2, \
 											 	 self.outdim_info[3], \
@@ -62,6 +69,8 @@ class Encoder(object):
 												 )  
 
 
+			print("subsample_layer_1 info : ", subsample_layer_1)
+
 			conv_layer_3 = tf.layers.conv2d(subsample_layer_1, \
 											self.outdim_info[4], \
 											self.kernel_info[4], \
@@ -70,6 +79,9 @@ class Encoder(object):
 											activation = tf.nn.elu,\
 											reuse = self.reuse,\
 											)  
+
+
+			print("conv_layer_3 info : ", conv_layer_3)
 
 			conv_layer_4 = tf.layers.conv2d(conv_layer_3, \
 											self.outdim_info[5], \
@@ -80,6 +92,7 @@ class Encoder(object):
 											reuse = self.reuse,\
 											)  
 
+			print("conv_layer_4 info : ", conv_layer_4)
 
 			subsample_layer_2 = tf.layers.conv2d(conv_layer_4, \
 											 	 self.outdim_info[6], \
@@ -91,6 +104,8 @@ class Encoder(object):
 												 )  
 
 
+			print("subsample_layer_2 info : ", subsample_layer_2)
+
 			conv_layer_5 = tf.layers.conv2d(subsample_layer_2, \
 											self.outdim_info[7], \
 											self.kernel_info[7], \
@@ -99,6 +114,8 @@ class Encoder(object):
 											activation = tf.nn.elu,\
 											reuse = self.reuse,\
 											)  
+
+			print("conv_layer_4 info : ", conv_layer_4)
 
 			conv_layer_6 = tf.layers.conv2d(conv_layer_5, \
 											self.outdim_info[8], \
@@ -109,9 +126,10 @@ class Encoder(object):
 											reuse = self.reuse,\
 											)  
 
+			print("conv_layer_6 info : ", conv_layer_6)
 
-			reshaped_vector = tf.reshape(conv_layer_6, [FLAGS.bn, 1, 8*8*3*self.n, 1])
+			reshaped_vector = tf.reshape(conv_layer_6, [FLAGS.bn, 1, 8*8*3*self.n])
 
-			embedding_vector = tf.dense(reshaped_vector, 8*8, reuse = self.reuse)
+			embedding_vector = tf.layers.dense(reshaped_vector, 8*8, reuse = self.reuse)
 
 			return embedding_vector

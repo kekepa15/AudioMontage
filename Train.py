@@ -38,10 +38,10 @@ def main(_):
 									[1, 1], \
 									[1, 1], \
 									[1, 1], \
+									[2, 2], \
 									[1, 1], \
 									[1, 1], \
-									[1, 1], \
-									[1, 1], \
+									[2, 2], \
 									[1, 1], \
 									[1, 1], \
 								], \
@@ -125,25 +125,28 @@ def main(_):
 
 	#____________________________________Model composition________________________________________
 
+
+	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32)
+
 	E = Encoder("Encoder", Encoder_infos)
 	D = Decoder("Decoder", Decoder_infos)
 	G = Decoder("Generator", Generator_infos)
 
 	#Generator
-	z_G = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n, 1), name = "z_G") #get embedding vector z_G
-	z_D = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n, 1), name = "z_D") #get embedding vector z_G
+	z_G = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n), name = "z_G") #get embedding vector z_G
+	z_D = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n), name = "z_D") #get embedding vector z_G
 
 	generated_image = G.decode(z_G)
 	generated_image_for_disc = G.decode(z_D, reuse = True)
 
 	#Discriminator (Auto-Encoder)
-	image = tf.placeholder(tf.float32, shape=(FLAGS.bn, scale_size[0], scale_size[1], 1), name = "Real_Image") #get embedding vector z_G
+	image = tf.placeholder(tf.float32, shape=(FLAGS.bn, scale_size[0], scale_size[1], 3), name = "Real_Image") #get embedding vector z_G
 
 	embedding_vector_real = E.encode(image)
 	reconstructed_image_real = D.decode(embedding_vector_real)
 
-	embedding_vector_fake = E.encode(generated_image_for_disc)
-	reconstructed_image_fake = D.decode(embedding_vector_fake)
+	embedding_vector_fake = E.encode(generated_image_for_disc, reuse=True)
+	reconstructed_image_fake = D.decode(embedding_vector_fake, reuse=True)
 
 
 	#-----------------------------------------------------------------------------------------------
@@ -160,13 +163,14 @@ def main(_):
 	"""
 	Define Loss
 	"""
-	real_image_loss = get_loss(real_image, reconstructed_image_real)
+	real_image_loss = get_loss(image, reconstructed_image_real)
+	print("rml", real_image_loss)
 	generator_loss_for_disc = get_loss(generated_image_for_disc, reconstructed_image_fake)
 	discriminator_loss = real_image_loss - k*generator_loss_for_disc
 	generator_loss = get_loss(generated_image, reconstructed_image_fake)
-	global_measure = real_image_loss + tf.abs(FLAGS.gamma*real_image_loss - generator_loss)
+	global_measure = real_image_loss + tf.abs(tf.multiply(FLAGS.gamma,real_image_loss) - generator_loss)
 
-
+	
 	#-----------------------------------------------------------------------------------------------
 
 
