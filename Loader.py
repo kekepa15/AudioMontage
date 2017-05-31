@@ -45,12 +45,12 @@ class Image_Loader(object):
             image = tf.image.rgb_to_grayscale(image)
         image.set_shape(shape)
 
-        min_after_dequeue = 5000
+        min_after_dequeue = 500
         capacity = min_after_dequeue + 3 * self.batch_size
 
         queue = tf.train.shuffle_batch(
             [image], batch_size=self.batch_size,
-            num_threads=4, capacity=capacity,
+            num_threads=3, capacity=capacity,
             min_after_dequeue=min_after_dequeue, name='synthetic_inputs') 
 
         queue = tf.image.resize_area(queue, [self.scale_size[0], self.scale_size[1]])
@@ -142,7 +142,7 @@ class Spectrogram_Loader(object):
 
 
         
-        min_after_dequeue = 5000
+        min_after_dequeue = 1000
         capacity = min_after_dequeue + 3*self.batch_size
 
         queue = tf.train.shuffle_batch(

@@ -192,7 +192,7 @@ def main(_):
 			generator_parameters.append(v)
 			print("Generator parameter : ", v.name)
 		else:
-			print("? : ", v.name)
+			print("None of Generator and Discriminator parameter : ", v.name)
 
 	optimizer_D = tf.train.AdamOptimizer(FLAGS.lr,beta1=FLAGS.B1,beta2=FLAGS.B2).minimize(discriminator_loss,var_list=discriminator_parameters)
 	optimizer_G = tf.train.AdamOptimizer(FLAGS.lr,beta1=FLAGS.B1,beta2=FLAGS.B2).minimize(generator_loss,var_list=generator_parameters)
@@ -233,27 +233,20 @@ def main(_):
 		#___________________Get DATA________________________		
 
 			real_image = loader.get_image_from_loader(sess) # Get Image Mini-Batch from Queue
-			print("real_image shape:", real_image.shape)
-			print("real_image dtype:", real_image.dtype)
-
 			z_g = sess.run(generate_z())
 			z_d = sess.run(generate_z())
-			print("z_d shape : ", z_d.shape)
-			print("z_d dtype : ", z_d.dtype)
-			print("z_g shape : ", z_g.shape)
-			print("z_g dtype : ", z_g.dtype)
 
 		#---------------------------------------------------
 
 			_, l_D = sess.run([optimizer_D, discriminator_loss], feed_dict={image : real_image, z_D : z_d})
 			_, l_G = sess.run([optimizer_G, generator_loss], feed_dict={z_D : z_d, z_G : z_g})
-			l_Global = sess.run(global_measure)
+			l_Global = sess.run(global_measure, feed_dict={image : real_image, z_D : z_d, z_G : z_g})
 			
 			tf.summary.scalar('Discriminator loss', l_D)
 			tf.summary.scalar('Generator loss', l_G)
 			tf.summary.scalar('Global_Measure', l_Global)
 
-			print("Global measure of convergence : ", l_Global, "  Generator Loss : ", l_G, "  Discriminator Loss : ", l_D) 
+			print("Step : {}".format(t), "Global measure of convergence : ", l_Global, "  Generator Loss : ", l_G, "  Discriminator Loss : ", l_D) 
 
 			k = k + FLAGS.lamb*(FLAGS.gamma*real_image_loss - generator_loss)
 
@@ -270,8 +263,8 @@ def main(_):
 			if t % 200 == 0:
 				writer.add_summary(summary, t)
 
-				Generated_images = sess.run(generated_image)
-				Decoded_Generated_images = sess.run(reconstructed_image_fake)
+				Generated_images = sess.run(generated_image, feed_dict={z_G : z_g})
+				Decoded_Generated_images = sess.run(reconstructed_image_fake, feed_dict={z_D : z_d, z_G : z_g})
 				
 				save_image(Generated_images, '{}/{}.png'.format("./Generated_Images", t))
 				save_image(Decoded_Generated_images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
