@@ -1,6 +1,12 @@
 """
-BEGAN for audio montage project
+Python2 & Python3 
+Version Compatible
 """
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from Utils import generate_z, FLAGS, get_loss
 from Decoder import Decoder
 from Encoder import Encoder
@@ -117,28 +123,23 @@ def main(_):
 
 
 
-
-
-
-
 	#____________________________________Model composition________________________________________
 
 
-	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
+	
 
 	E = Encoder("Encoder", Encoder_infos)
 	D = Decoder("Decoder", Decoder_infos)
 	G = Decoder("Generator", Generator_infos)
 
-	#Generator
-	z_G = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n), name = "z_G") # Place holder for  z_G
-	z_D = tf.placeholder(tf.float32, shape=(FLAGS.bn, 1, FLAGS.hidden_n), name = "z_D") # Place holder for  z_D
+	z_G = generate_z()
+	z_D = generate_z()
 
 	generated_image = G.decode(z_G)
 	generated_image_for_disc = G.decode(z_D, reuse = True)
 
 	#Discriminator (Auto-Encoder)
-	image = tf.placeholder(tf.float32, shape=(FLAGS.bn, scale_size[0], scale_size[1], 3), name = "Real_Image") #get embedding vector z_G
+	image = loader.queue # Get image batch tensor
 
 	embedding_vector_real = E.encode(image)
 	reconstructed_image_real = D.decode(embedding_vector_real)
@@ -155,7 +156,7 @@ def main(_):
 
 
 
-	#____________________________________________Loss_______________________________________________
+	#_________________________________Loss & Summary_______________________________________________
 
 
 	"""
@@ -167,7 +168,16 @@ def main(_):
 	generator_loss = get_loss(generated_image, reconstructed_image_fake)
 	global_measure = real_image_loss + tf.abs(tf.multiply(FLAGS.gamma,real_image_loss) - generator_loss)
 
+	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
+
+	tf.summary.scalar('Discriminator loss', discriminator_loss)
+	tf.summary.scalar('Generator loss', generator_loss)
+	tf.summary.scalar('Global_Measure', global_measure)
+	tf.summary.scalar('k_t', k)
 	
+
+	merged_summary = tf.summary.merge_all() # merege summaries, no more summaries under this line
+
 	#-----------------------------------------------------------------------------------------------
 
 
@@ -200,15 +210,21 @@ def main(_):
 	init = tf.global_variables_initializer()	
 
 
+	NUM_THREADS=2
+	config=tf.ConfigProto(inter_op_parallelism_threads=NUM_THREADS,\
+						intra_op_parallelism_threads=NUM_THREADS,\
+						allow_soft_placement=True,\
+						device_count = {'CPU': 1},\
+						)
 
-	with tf.Session() as sess:
+	with tf.Session(config=config) as sess:
 
 		sess.run(init) # Initialize Variables
 
 
 		coord = tf.train.Coordinator() # Set Coordinator to Manage Queue Runners
 		threads = tf.train.start_queue_runners(sess, coord=coord) # Set Threads
-		
+		writer = tf.summary.FileWriter('./logs', sess.graph) # add the graph to the file './logs'		
 
 #_______________________________Restore____________________________________
 
@@ -216,13 +232,13 @@ def main(_):
 		ckpt = tf.train.get_checkpoint_state(checkpoint_dir="./Check_Point")
 
 		
-		try :	
-			if ckpt and ckpt.model_checkpoint_path:
-				print("check point path : ", ckpt.model_checkpoint_path)
-				saver.restore(sess, ckpt.model_checkpoint_path)	
-				print('Restored!')
-		except AttributeError:
-				print("No checkpoint")	
+		# try :	
+		# 	if ckpt and ckpt.model_checkpoint_path:
+		# 		print("check point path : ", ckpt.model_checkpoint_path)
+		# 		saver.restore(sess, ckpt.model_checkpoint_path)	
+		# 		print('Restored!')
+		# except AttributeError:
+		# 		print("No checkpoint")	
 
 #---------------------------------------------------------------------------
 		for t in range(FLAGS.iteration): # Mini-Batch Iteration Loop
@@ -230,41 +246,28 @@ def main(_):
 			if coord.should_stop():
 				break
 
-		#___________________Get DATA________________________		
-
-			real_image = loader.get_image_from_loader(sess) # Get Image Mini-Batch from Queue
-			z_g = sess.run(generate_z())
-			z_d = sess.run(generate_z())
-
-		#---------------------------------------------------
-
-			_, l_D = sess.run([optimizer_D, discriminator_loss], feed_dict={image : real_image, z_D : z_d})
-			_, l_G = sess.run([optimizer_G, generator_loss], feed_dict={z_D : z_d, z_G : z_g})
-			l_Global = sess.run(global_measure, feed_dict={image : real_image, z_D : z_d, z_G : z_g})
-			
-			tf.summary.scalar('Discriminator loss', l_D)
-			tf.summary.scalar('Generator loss', l_G)
-			tf.summary.scalar('Global_Measure', l_Global)
+			_, _, l_D, l_G, l_Global = sess.run([optimizer_D,\
+												optimizer_G,\
+												discriminator_loss,\
+												generator_loss,\
+												global_measure],\
+												)
 
 			print("Step : {}".format(t), "Global measure of convergence : ", l_Global, "  Generator Loss : ", l_G, "  Discriminator Loss : ", l_D) 
 
-			k = k + FLAGS.lamb*(FLAGS.gamma*real_image_loss - generator_loss)
 
-	#       ____________________________Save____________________________________
+			tf.assign(k, tf.clip_by_value(k + FLAGS.lamb * (FLAGS.gamma*real_image_loss - generator_loss), 0, 1)) #update k_t
 
-
-			merged_summary = tf.summary.merge_all() # merege summaries
-			summary = sess.run(merged_summary)
-
-			writer = tf.summary.FileWriter('./logs', sess.graph) # add the graph to the file './logs'
 			
-			
+	       #____________________________Save____________________________________
+
 
 			if t % 200 == 0:
+
+				summary = sess.run(merged_summary)
 				writer.add_summary(summary, t)
 
-				Generated_images = sess.run(generated_image, feed_dict={z_G : z_g})
-				Decoded_Generated_images = sess.run(reconstructed_image_fake, feed_dict={z_D : z_d, z_G : z_g})
+				Generated_images, Decoded_Generated_images = sess.run([generated_image, reconstructed_image_fake])
 				
 				save_image(Generated_images, '{}/{}.png'.format("./Generated_Images", t))
 				save_image(Decoded_Generated_images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
@@ -272,18 +275,15 @@ def main(_):
 
 
 			if t % 500 == 0:
+
 				saver.save(sess, "./Check_Point/model.ckpt", global_step = t)
 
 
-	#       --------------------------------------------------------------------
+	       #--------------------------------------------------------------------
 
 
 		coord.request_stop()
 		coord.join(threads)
-
-
-			
-
 
 
 #-----------------------------------Train Finish---------------------------------

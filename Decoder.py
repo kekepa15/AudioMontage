@@ -37,6 +37,9 @@ class Decoder(object):
 
 
             h_1 = tf.image.resize_nearest_neighbor(h_0, [16,16]) # first skip connection
+
+            print("h_1 : ", h_1)
+
             resized_conv_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
             upsample_layer_1 = tf.concat([h_1, resized_conv_layer_2], axis=3)
 

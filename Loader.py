@@ -45,7 +45,7 @@ class Image_Loader(object):
             image = tf.image.rgb_to_grayscale(image)
         image.set_shape(shape)
 
-        min_after_dequeue = 500
+        min_after_dequeue = 3000
         capacity = min_after_dequeue + 3 * self.batch_size
 
         queue = tf.train.shuffle_batch(

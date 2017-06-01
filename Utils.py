@@ -61,7 +61,7 @@ flags.DEFINE_float("iteration", 10000000, "Maximum iteration number")
 #Functions
 
 def generate_z(size=FLAGS.hidden_n):
-    return tf.random_uniform(shape=(FLAGS.bn,1,size), minval=-1, maxval=1, dtype=tf.float32)
+    return tf.random_uniform(shape=(FLAGS.bn,size), minval=-1, maxval=1, dtype=tf.float32)
 
 def get_loss(image, decoded_image):
 	L1_norm = tf.reduce_mean(tf.abs(tf.subtract(image,decoded_image)))

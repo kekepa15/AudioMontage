@@ -128,7 +128,7 @@ class Encoder(object):
 
 			print("conv_layer_6 info : ", conv_layer_6)
 
-			reshaped_vector = tf.reshape(conv_layer_6, [FLAGS.bn, 1, 8*8*3*self.n])
+			reshaped_vector = tf.reshape(conv_layer_6, [FLAGS.bn, 8*8*3*self.n])
 
 			embedding_vector = tf.layers.dense(reshaped_vector, 8*8, reuse = self.reuse)
 
