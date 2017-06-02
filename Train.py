@@ -26,7 +26,7 @@ def main(_):
 	n = FLAGS.hidden_n
 
 	Encoder_infos = {
-						"outdim":[n,n,2*n,2*n,2*n,3*n,3*n, 3*n, 3*n], \
+						"outdim":[n,n,2*n,2*n,2*n,3*n,3*n, 3*n, 3*n],\ #Output channel dimension 
 						"kernel":[ \
 									[3, 3], \
 									[3, 3], \
@@ -125,22 +125,22 @@ def main(_):
 
 	#____________________________________Model composition________________________________________
 
+	image = loader.queue # Get image batch tensor
+	z_G = generate_z() # Sample embedding vector batch from uniform distribution
+	z_D = generate_z() # Sample embedding vector batch from uniform distribution
 
-	
 
 	E = Encoder("Encoder", Encoder_infos)
 	D = Decoder("Decoder", Decoder_infos)
 	G = Decoder("Generator", Generator_infos)
 
-	z_G = generate_z()
-	z_D = generate_z()
 
 	generated_image = G.decode(z_G)
 	generated_image_for_disc = G.decode(z_D, reuse = True)
 
-	#Discriminator (Auto-Encoder)
-	image = loader.queue # Get image batch tensor
 
+	#Discriminator (Auto-Encoder)
+	
 	embedding_vector_real = E.encode(image)
 	reconstructed_image_real = D.decode(embedding_vector_real)
 
@@ -149,10 +149,6 @@ def main(_):
 
 
 	#-----------------------------------------------------------------------------------------------
-
-
-
-
 
 
 
