@@ -33,7 +33,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 #training parameters
-flags.DEFINE_float('lr', 0.0001, 'Initial learning rate.')
+flags.DEFINE_float('lr', 0.00008, 'Initial learning rate.')
 flags.DEFINE_float('B1', 0.5, 'Beta1')
 flags.DEFINE_float('B2', 0.99, 'Beta2')
 flags.DEFINE_integer('epochs', 100000, 'Maximum epochs to iterate.')
@@ -47,12 +47,13 @@ flags.DEFINE_integer('spec_c', spectrogram_c, "Channel of spectrogram" )
 flags.DEFINE_integer('img_h', image_h, "Height of image" )
 flags.DEFINE_integer('img_w', image_w, "Width of image" )
 flags.DEFINE_integer('img_c', image_c, "Channel of image" )
-
+flags.DEFINE_integer('scale_w', 32, "Width Scaling Factor" )
+flags.DEFINE_integer('scale_h', 32, "Height Scaling Factor" )
 
 #model parameters
 flags.DEFINE_integer('hidden_n', 64, "Hidden convolution number")
 flags.DEFINE_integer('output_channel', 3, "Output channel number")
-flags.DEFINE_float("gamma", 0.8, "Gamma : Diversity ratio")
+flags.DEFINE_float("gamma", 0.5, "Gamma : Diversity ratio")
 flags.DEFINE_float("lamb", 0.001, "Lambda : Learning rate of k_t")
 flags.DEFINE_float("iteration", 10000000, "Maximum iteration number")
 
@@ -66,6 +67,14 @@ def generate_z(size=FLAGS.hidden_n):
 def get_loss(image, decoded_image):
 	L1_norm = tf.reduce_mean(tf.abs(tf.subtract(image,decoded_image)))
 	return L1_norm
+
+def norm_img(image):
+    image = image/127.5 - 1.
+    return image
+
+def denorm_img(norm):
+    return tf.clip_by_value((norm + 1)*127.5, 0, 255)
+
 
 def upsample(images, size):
 	"""    

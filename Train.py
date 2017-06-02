@@ -2,12 +2,11 @@
 Python2 & Python3 
 Version Compatible
 """
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from Utils import generate_z, FLAGS, get_loss
+from Utils import generate_z, FLAGS, get_loss, norm_img, denorm_img
 from Decoder import Decoder
 from Encoder import Encoder
 from Loader import Image_Loader, save_image
@@ -102,7 +101,7 @@ def main(_):
 	"""
 	root = "./CelebA/images"
 	batch_size = FLAGS.bn
-	scale_size = [32,32]
+	scale_size = [FLAGS.scale_h,FLAGS.scale_w]
 	data_format = "NHWC"
 	loader = Image_Loader(root, batch_size, scale_size, data_format, file_type="jpg")
 
@@ -113,6 +112,7 @@ def main(_):
 	"""
 	os.makedirs("./Check_Point", exist_ok=True)
 	os.makedirs("./logs", exist_ok=True) # make logs directories to save summaries
+	os.makedirs("./Real_Images", exist_ok=True)
 	os.makedirs("./Generated_Images", exist_ok=True)
 	os.makedirs("./Decoded_Generated_Images", exist_ok=True)
 
@@ -241,7 +241,7 @@ def main(_):
 
 			if coord.should_stop():
 				break
-
+			
 			_, _, l_D, l_G, l_Global = sess.run([optimizer_D,\
 												optimizer_G,\
 												discriminator_loss,\
@@ -249,10 +249,15 @@ def main(_):
 												global_measure],\
 												)
 
-			print("Step : {}".format(t), "Global measure of convergence : ", l_Global, "  Generator Loss : ", l_G, "  Discriminator Loss : ", l_D) 
+			print(
+				 " Step : {}".format(t),
+				 " Global measure of convergence : {}".format(l_Global),
+				 " Generator Loss : {}".format(l_G),
+				 " Discriminator Loss : {}".format(l_D),
+				 ) 
 
 
-			tf.assign(k, tf.clip_by_value(k + FLAGS.lamb * (FLAGS.gamma*real_image_loss - generator_loss), 0, 1)) #update k_t
+			k = tf.assign(k, tf.clip_by_value(k + FLAGS.lamb * (FLAGS.gamma*real_image_loss - generator_loss), 0, 1)) #update k_t
 
 			
 	       #____________________________Save____________________________________
@@ -263,10 +268,11 @@ def main(_):
 				summary = sess.run(merged_summary)
 				writer.add_summary(summary, t)
 
-				Generated_images, Decoded_Generated_images = sess.run([generated_image, reconstructed_image_fake])
-				
-				save_image(Generated_images, '{}/{}.png'.format("./Generated_Images", t))
-				save_image(Decoded_Generated_images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
+				# Real_Images, Generated_Images, Decoded_Generated_Images = sess.run([denorm_img(image), denorm_img(generated_image), denorm_img(reconstructed_image_fake)])
+				Real_Images, Generated_Images, Decoded_Generated_Images = sess.run([image, generated_image, reconstructed_image_fake])
+				save_image(Real_Images, '{}/{}.png'.format("./Real_Images", t))
+				save_image(Generated_Images, '{}/{}.png'.format("./Generated_Images", t))
+				save_image(Decoded_Generated_Images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
 
 
 

@@ -2,6 +2,7 @@ import math, os
 from PIL import Image
 from glob import glob
 from os import walk, mkdir
+from Utils import FLAGS, norm_img
 
 import tensorflow as tf
 import numpy as np
@@ -53,7 +54,8 @@ class Image_Loader(object):
             num_threads=3, capacity=capacity,
             min_after_dequeue=min_after_dequeue, name='synthetic_inputs') 
 
-        queue = tf.image.resize_area(queue, [self.scale_size[0], self.scale_size[1]])
+        queue = tf.image.crop_to_bounding_box(queue, 50, 25, 128, 128)
+        queue = tf.image.resize_nearest_neighbor(queue, [FLAGS.scale_w, FLAGS.scale_h])
 
         if self.data_format == 'NCHW':
             queue = tf.transpose(queue, [0, 3, 1, 2])
@@ -62,7 +64,8 @@ class Image_Loader(object):
         else:
             raise Exception("[!] Unkown data_format: {}".format(self.data_format))
 
-        self.queue = tf.to_float(queue) / 255.0
+        # self.queue = norm_img(tf.to_float(queue))
+        self.queue = tf.to_float(queue)
 
     def get_image_from_loader(self, sess):
         x = self.queue.eval(session=sess)
