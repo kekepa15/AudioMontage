@@ -34,7 +34,6 @@ class Decoder(object):
 
 
             h_1 = tf.image.resize_nearest_neighbor(h_0, [16,16]) # first skip connection
-
             resized_conv_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
             upsample_layer_1 = tf.concat([h_1, resized_conv_layer_2], axis=3)
 
@@ -43,7 +42,7 @@ class Decoder(object):
             conv_layer_4 = tf.layers.conv2d(conv_layer_3, self.outdim_info[3], self.kernel_info[3], self.stride_info[3],padding = "same", activation = tf.nn.elu, reuse = self.reuse)
 
 
-            h_2 = tf.image.resize_nearest_neighbor(h_1, [32,32]) # second skip connection
+            h_2 = tf.image.resize_nearest_neighbor(h_0, [32,32]) # second skip connection
             resized_conv_layer_4 = tf.image.resize_nearest_neighbor(conv_layer_4, [32,32]) 
             upsample_layer_2 = tf.concat([h_2, resized_conv_layer_4], axis=3)
 
