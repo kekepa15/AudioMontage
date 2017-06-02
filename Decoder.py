@@ -19,15 +19,12 @@ class Decoder(object):
 
             self.h = h
 
-            print("input info : ", h)
-
             self.outdim_info = self.info['outdim']
             self.kernel_info = self.info['kernel']
             self.stride_info = self.info['stride']
             
             dense_layer = tf.layers.dense(self.h, 8*8*self.n, reuse = self.reuse)
 
-            print("dense_layer info : ", dense_layer)
 
             h_0 = tf.reshape(dense_layer, [FLAGS.bn, 8, 8, self.n])
 
@@ -37,8 +34,6 @@ class Decoder(object):
 
 
             h_1 = tf.image.resize_nearest_neighbor(h_0, [16,16]) # first skip connection
-
-            print("h_1 : ", h_1)
 
             resized_conv_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
             upsample_layer_1 = tf.concat([h_1, resized_conv_layer_2], axis=3)

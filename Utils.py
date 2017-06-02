@@ -37,7 +37,7 @@ flags.DEFINE_float('lr', 0.0001, 'Initial learning rate.')
 flags.DEFINE_float('B1', 0.5, 'Beta1')
 flags.DEFINE_float('B2', 0.99, 'Beta2')
 flags.DEFINE_integer('epochs', 100000, 'Maximum epochs to iterate.')
-flags.DEFINE_integer('bn', 1, "Batch number")
+flags.DEFINE_integer('bn', 16, "Batch number")
 
 
 #data parameters

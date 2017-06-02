@@ -26,7 +26,7 @@ def main(_):
 	n = FLAGS.hidden_n
 
 	Encoder_infos = {
-						"outdim":[n,n,2*n,2*n,2*n,3*n,3*n, 3*n, 3*n],\ #Output channel dimension 
+						"outdim":[n,n,2*n,2*n,2*n,3*n,3*n, 3*n, 3*n],\
 						"kernel":[ \
 									[3, 3], \
 									[3, 3], \
@@ -125,6 +125,8 @@ def main(_):
 
 	#____________________________________Model composition________________________________________
 
+	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
+
 	image = loader.queue # Get image batch tensor
 	z_G = generate_z() # Sample embedding vector batch from uniform distribution
 	z_D = generate_z() # Sample embedding vector batch from uniform distribution
@@ -134,13 +136,12 @@ def main(_):
 	D = Decoder("Decoder", Decoder_infos)
 	G = Decoder("Generator", Generator_infos)
 
-
+	#Generator
 	generated_image = G.decode(z_G)
 	generated_image_for_disc = G.decode(z_D, reuse = True)
 
 
-	#Discriminator (Auto-Encoder)
-	
+	#Discriminator (Auto-Encoder)	
 	embedding_vector_real = E.encode(image)
 	reconstructed_image_real = D.decode(embedding_vector_real)
 
@@ -164,7 +165,6 @@ def main(_):
 	generator_loss = get_loss(generated_image, reconstructed_image_fake)
 	global_measure = real_image_loss + tf.abs(tf.multiply(FLAGS.gamma,real_image_loss) - generator_loss)
 
-	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
 
 	tf.summary.scalar('Discriminator loss', discriminator_loss)
 	tf.summary.scalar('Generator loss', generator_loss)
