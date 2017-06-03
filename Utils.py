@@ -57,6 +57,9 @@ flags.DEFINE_float("gamma", 0.5, "Gamma : Diversity ratio")
 flags.DEFINE_float("lamb", 0.001, "Lambda : Learning rate of k_t")
 flags.DEFINE_float("iteration", 10000000, "Maximum iteration number")
 
+#gpu parameters
+flags.DEFINE_float("gpu_portion", 0.4, "Limit the GPU portion")
+
 #---------------------------------------------------------------------------#
 
 #Functions
@@ -73,7 +76,7 @@ def norm_img(image):
     return image
 
 def denorm_img(norm):
-    return tf.clip_by_value((norm + 1)*127.5, 0, 255)
+    return tf.clip_by_value((norm + 1.)*127.5, 0, 255)
 
 
 def upsample(images, size):

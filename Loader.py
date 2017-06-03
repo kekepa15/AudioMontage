@@ -32,18 +32,17 @@ class Image_Loader(object):
         elif file_type == "png":
             tf_decode = tf.image.decode_png
 
-        img = Image.open(paths[0])
-        w, h = img.size
+        img_temp = Image.open(paths[0])
+        w, h = img_temp.size
         shape = [h, w, 3]
-
+        
         filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed)
         reader = tf.WholeFileReader()
-        filename, data = reader.read(filename_queue)        
-        image = tf_decode(data, channels=3)
-        
+        filename, data = reader.read(filename_queue)       
+        image = tf_decode(data, channels=3)       
 
         if self.is_grayscale:
-            image = tf.image.rgb_to_grayscale(image)
+            image = tf.image.rgb_to_grayscale(image)   
         image.set_shape(shape)
 
         min_after_dequeue = 3000
@@ -52,10 +51,12 @@ class Image_Loader(object):
         queue = tf.train.shuffle_batch(
             [image], batch_size=self.batch_size,
             num_threads=3, capacity=capacity,
-            min_after_dequeue=min_after_dequeue, name='synthetic_inputs') 
+            min_after_dequeue=min_after_dequeue, name='shuffle_batch_queue') 
+
 
         queue = tf.image.crop_to_bounding_box(queue, 50, 25, 128, 128)
-        queue = tf.image.resize_nearest_neighbor(queue, [FLAGS.scale_w, FLAGS.scale_h])
+        queue = tf.image.resize_nearest_neighbor(queue, self.scale_size)
+        
 
         if self.data_format == 'NCHW':
             queue = tf.transpose(queue, [0, 3, 1, 2])
@@ -63,9 +64,10 @@ class Image_Loader(object):
             pass
         else:
             raise Exception("[!] Unkown data_format: {}".format(self.data_format))
-
-        # self.queue = norm_img(tf.to_float(queue))
+     
+        
         self.queue = tf.to_float(queue)
+
 
     def get_image_from_loader(self, sess):
         x = self.queue.eval(session=sess)
@@ -77,11 +79,14 @@ def save_image(tensor, filename, nrow=8, padding=2,
             normalize=False, scale_each=False):
     ndarr = make_grid(tensor, nrow=nrow, padding=padding,
                             normalize=normalize, scale_each=scale_each)
+    print("Image shape : ", ndarr.shape)
+    print("Image type : ", ndarr.dtype)
     im = Image.fromarray(ndarr)
     im.save(filename)
 
+    
 def make_grid(tensor, nrow=8, padding=2,
-            normalize=False, scale_each=False):
+              normalize=False, scale_each=False):
     """Code based on https://github.com/pytorch/vision/blob/master/torchvision/utils.py"""
     nmaps = tensor.shape[0]
     xmaps = min(nrow, nmaps)
@@ -96,9 +101,10 @@ def make_grid(tensor, nrow=8, padding=2,
             h, h_width = y * height + 1 + padding // 2, height - padding
             w, w_width = x * width + 1 + padding // 2, width - padding
 
-            grid[h:h+h_width, w:w+w_width] = tensor[k] * 255
+            grid[h:h+h_width, w:w+w_width] = tensor[k]
             k = k + 1
     return grid
+
 
 
 class Spectrogram_Loader(object):

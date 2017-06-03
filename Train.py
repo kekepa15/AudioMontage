@@ -10,10 +10,12 @@ from Utils import generate_z, FLAGS, get_loss, norm_img, denorm_img
 from Decoder import Decoder
 from Encoder import Encoder
 from Loader import Image_Loader, save_image
+from PIL import Image
 
 import tensorflow as tf
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 def main(_):
 
@@ -127,7 +129,8 @@ def main(_):
 
 	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
 
-	image = loader.queue # Get image batch tensor
+	batch = loader.queue # Get image batch tensor
+	image = norm_img(batch) # Normalize Imgae
 	z_G = generate_z() # Sample embedding vector batch from uniform distribution
 	z_D = generate_z() # Sample embedding vector batch from uniform distribution
 
@@ -142,10 +145,17 @@ def main(_):
 
 
 	#Discriminator (Auto-Encoder)	
+
+	#image <--AutoEncoder--> reconstructed_image_real
 	embedding_vector_real = E.encode(image)
 	reconstructed_image_real = D.decode(embedding_vector_real)
 
-	embedding_vector_fake = E.encode(generated_image_for_disc, reuse=True)
+	#generated_image_for_disc <--AutoEncoder--> reconstructed_image_fake
+	embedding_vector_fake_for_disc = E.encode(generated_image_for_disc, reuse=True)
+	reconstructed_image_fake_for_disc = D.decode(embedding_vector_fake_for_disc, reuse=True)
+
+	#generated_image <--AutoEncoder--> reconstructed_image_fake
+	embedding_vector_fake = E.encode(generated_image, reuse=True)
 	reconstructed_image_fake = D.decode(embedding_vector_fake, reuse=True)
 
 
@@ -160,8 +170,9 @@ def main(_):
 	Define Loss
 	"""
 	real_image_loss = get_loss(image, reconstructed_image_real)
-	generator_loss_for_disc = get_loss(generated_image_for_disc, reconstructed_image_fake)
+	generator_loss_for_disc = get_loss(generated_image_for_disc, reconstructed_image_fake_for_disc)
 	discriminator_loss = real_image_loss - tf.multiply(k, generator_loss_for_disc)
+
 	generator_loss = get_loss(generated_image, reconstructed_image_fake)
 	global_measure = real_image_loss + tf.abs(tf.multiply(FLAGS.gamma,real_image_loss) - generator_loss)
 
@@ -213,10 +224,13 @@ def main(_):
 						device_count = {'CPU': 1},\
 						)
 
+	# config.gpu_options.per_process_gpu_memory_fraction = FLAGS.gpu_portion
+
+
+
 	with tf.Session(config=config) as sess:
 
 		sess.run(init) # Initialize Variables
-
 
 		coord = tf.train.Coordinator() # Set Coordinator to Manage Queue Runners
 		threads = tf.train.start_queue_runners(sess, coord=coord) # Set Threads
@@ -235,6 +249,9 @@ def main(_):
 		# 		print('Restored!')
 		# except AttributeError:
 		# 		print("No checkpoint")	
+
+		Real_Images = sess.run(denorm_img(image))
+		save_image(Real_Images, '{}.png'.format("./Real_Images"))
 
 #---------------------------------------------------------------------------
 		for t in range(FLAGS.iteration): # Mini-Batch Iteration Loop
@@ -268,9 +285,7 @@ def main(_):
 				summary = sess.run(merged_summary)
 				writer.add_summary(summary, t)
 
-				# Real_Images, Generated_Images, Decoded_Generated_Images = sess.run([denorm_img(image), denorm_img(generated_image), denorm_img(reconstructed_image_fake)])
-				Real_Images, Generated_Images, Decoded_Generated_Images = sess.run([image, generated_image, reconstructed_image_fake])
-				save_image(Real_Images, '{}/{}.png'.format("./Real_Images", t))
+				Generated_Images, Decoded_Generated_Images = sess.run([denorm_img(generated_image), denorm_img(reconstructed_image_fake)])
 				save_image(Generated_Images, '{}/{}.png'.format("./Generated_Images", t))
 				save_image(Decoded_Generated_Images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
 

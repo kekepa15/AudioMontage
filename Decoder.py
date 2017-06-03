@@ -33,19 +33,19 @@ class Decoder(object):
             conv_layer_2 = tf.layers.conv2d(conv_layer_1, self.outdim_info[1], self.kernel_info[1], self.stride_info[1], padding = "same", activation = tf.nn.elu, reuse = self.reuse)  
 
 
-            # h_1 = tf.image.resize_nearest_neighbor(h_0, [16,16]) # first skip connection
-            # resized_conv_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
-            # upsample_layer_1 = tf.concat([h_1, resized_conv_layer_2], axis=3)
-            upsample_layer_1 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
+            h_1 = tf.image.resize_nearest_neighbor(h_0, [16,16]) # first skip connection
+            resized_conv_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [16,16]) 
+            upsample_layer_1 = tf.concat([h_1, resized_conv_layer_2], axis=3)
+
 
             conv_layer_3 = tf.layers.conv2d(upsample_layer_1, self.outdim_info[2], self.kernel_info[2], self.stride_info[2], padding = "same", activation = tf.nn.elu, reuse = self.reuse)
             conv_layer_4 = tf.layers.conv2d(conv_layer_3, self.outdim_info[3], self.kernel_info[3], self.stride_info[3],padding = "same", activation = tf.nn.elu, reuse = self.reuse)
 
 
-            # h_2 = tf.image.resize_nearest_neighbor(h_0, [32,32]) # second skip connection
-            # resized_conv_layer_4 = tf.image.resize_nearest_neighbor(conv_layer_4, [32,32]) 
-            # upsample_layer_2 = tf.concat([h_2, resized_conv_layer_4], axis=3)
-            upsample_layer_2 = tf.image.resize_nearest_neighbor(conv_layer_2, [32,32])
+            h_2 = tf.image.resize_nearest_neighbor(h_0, [32,32]) # second skip connection
+            resized_conv_layer_4 = tf.image.resize_nearest_neighbor(conv_layer_4, [32,32]) 
+            upsample_layer_2 = tf.concat([h_2, resized_conv_layer_4], axis=3)
+            
 
             conv_layer_5 = tf.layers.conv2d(upsample_layer_2, self.outdim_info[4], self.kernel_info[4], self.stride_info[4], padding = "same", activation = tf.nn.elu, reuse = self.reuse)
             conv_layer_6 = tf.layers.conv2d(conv_layer_5, self.outdim_info[5], self.kernel_info[5], self.stride_info[5], padding = "same", activation = tf.nn.elu, reuse = self.reuse)
