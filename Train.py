@@ -127,8 +127,9 @@ def main(_):
 
 	#____________________________________Model composition________________________________________
 
-	k = tf.Variable(0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
-
+	k = tf.Variable(0.0, name = "k_t", trainable = False, dtype = tf.float32) #init value of k_t = 0
+	
+	
 	batch = loader.queue # Get image batch tensor
 	image = norm_img(batch) # Normalize Imgae
 	z_G = generate_z() # Sample embedding vector batch from uniform distribution
@@ -177,6 +178,11 @@ def main(_):
 	global_measure = real_image_loss + tf.abs(tf.multiply(FLAGS.gamma,real_image_loss) - generator_loss)
 
 
+	"""
+	Summaries
+	"""
+	tf.summary.scalar('Real image loss', real_image_loss)
+	tf.summary.scalar('Generator loss for discriminator', generator_loss_for_disc)
 	tf.summary.scalar('Discriminator loss', discriminator_loss)
 	tf.summary.scalar('Generator loss', generator_loss)
 	tf.summary.scalar('Global_Measure', global_measure)
@@ -213,6 +219,9 @@ def main(_):
 
 	optimizer_D = tf.train.AdamOptimizer(FLAGS.lr,beta1=FLAGS.B1,beta2=FLAGS.B2).minimize(discriminator_loss,var_list=discriminator_parameters)
 	optimizer_G = tf.train.AdamOptimizer(FLAGS.lr,beta1=FLAGS.B1,beta2=FLAGS.B2).minimize(generator_loss,var_list=generator_parameters)
+
+	with tf.control_dependencies([optimizer_D, optimizer_G]):
+		k_update = tf.assign(k, tf.clip_by_value(k + FLAGS.lamb * (FLAGS.gamma*real_image_loss - generator_loss), 0, 1)) #update k_t
 
 	init = tf.global_variables_initializer()	
 
@@ -251,7 +260,7 @@ def main(_):
 		# 		print("No checkpoint")	
 
 		Real_Images = sess.run(denorm_img(image))
-		save_image(Real_Images, '{}.png'.format("./Real_Images"))
+		save_image(Real_Images, '{}.png'.format("./Real_Images/Real_Image"))
 
 #---------------------------------------------------------------------------
 		for t in range(FLAGS.iteration): # Mini-Batch Iteration Loop
@@ -259,25 +268,28 @@ def main(_):
 			if coord.should_stop():
 				break
 			
-			_, _, l_D, l_G, l_Global = sess.run([optimizer_D,\
-												optimizer_G,\
-												discriminator_loss,\
-												generator_loss,\
-												global_measure],\
-												)
+			_, _, l_D, l_G, l_Global, k_t = sess.run([\
+													optimizer_D,\
+													optimizer_G,\
+													discriminator_loss,\
+													generator_loss,\
+													global_measure,\
+													k_update,\
+											   		])
 
 			print(
 				 " Step : {}".format(t),
 				 " Global measure of convergence : {}".format(l_Global),
 				 " Generator Loss : {}".format(l_G),
 				 " Discriminator Loss : {}".format(l_D),
-				 ) 
+				 " k_{} : {}".format(t,k_t) 
+				 )
 
-
-			k = tf.assign(k, tf.clip_by_value(k + FLAGS.lamb * (FLAGS.gamma*real_image_loss - generator_loss), 0, 1)) #update k_t
 
 			
-	       #____________________________Save____________________________________
+
+			
+	       #________________________________Save____________________________________
 
 
 			if t % 200 == 0:
@@ -285,20 +297,21 @@ def main(_):
 				summary = sess.run(merged_summary)
 				writer.add_summary(summary, t)
 
-				Generated_Images, Decoded_Generated_Images = sess.run([denorm_img(generated_image), denorm_img(reconstructed_image_fake)])
-				save_image(Generated_Images, '{}/{}.png'.format("./Generated_Images", t))
-				save_image(Decoded_Generated_Images, '{}/{}.png'.format("./Decoded_Generated_Images", t))
 
+				Generated_Images, Decoded_Generated_Images = sess.run([denorm_img(generated_image), denorm_img(reconstructed_image_fake)])
+				save_image(Generated_Images, '{}/{}{}.png'.format("./Generated_Images", "Generated", t))
+				save_image(Decoded_Generated_Images, '{}/{}{}.png'.format("./Decoded_Generated_Images", "AutoEncoded", t))
+				print("-------------------Image saved-------------------")
 
 
 			if t % 500 == 0:
-
+				print("Save model {}th".format(t))
 				saver.save(sess, "./Check_Point/model.ckpt", global_step = t)
 
 
 	       #--------------------------------------------------------------------
-
-
+		
+		writer.close()
 		coord.request_stop()
 		coord.join(threads)
 
